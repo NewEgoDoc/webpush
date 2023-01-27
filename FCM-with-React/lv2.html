@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+</head>
+<body>
+    <script>
+        const HOST = "61.84.166.137"
+        const PORT = "5000"
+        const urlParams = new URLSearchParams(window.location.search);
+        const ID = urlParams.get('ID');
+        
+        const Lv1IDof = {
+            "id200101" : "SID100009",
+            "id200103" : "SID100008",
+
+            "id200102" : "SID100001",
+            "id200105" : "SID100014",
+
+            "id200104" : "SID100005",
+            "id200109" : "SID100011",
+
+            "id200106" : "SID100010",
+            "id200107" : "SID100004",
+
+            "id200108" : "SID100013",
+            "id200110" : "SID100012"
+        }
+
+        const color = [
+            "#FFFFFF",
+            "#3388FF",
+            "#00B050",
+            "#FFC000",
+            "#FF0000"
+        ]
+        const refineData = (sensorName, value) => {
+
+            if(sensorName =="pm10"){
+                if(value <= 0) return 0;
+                if(value >= 600) return 600;
+            }
+
+            if(sensorName =="pm25"){
+                if(value <= 0)  return 0;
+                if(value >= 500) return 500;
+            }
+
+            if(sensorName =="temp"){
+                if(value < 0)  return 0;
+            }
+
+            if(sensorName =="humi"){
+                if(value < 0)  return 0;
+            }
+
+            if(sensorName =="co1"){
+                if(value < 0)  return 0;
+                if(value >= 50) return 50;
+            }
+
+            if(sensorName =="co2"){
+                if(value < 0)  return 0;
+                if(value >= 5000) return 5000;
+            }
+
+            if(sensorName =="voc"){
+                if(value < 0)  return 0;
+                if(value >= 20000) return 20000;
+            }
+
+            if(sensorName =="hcho"){
+                if(value < 0)  return 0;
+                if(value >= 2000) return 2000;
+            }
+
+            return value;
+        }
+
+        const leftPad = (value) => {
+            if (value >= 10) {
+                return value;
+            }
+
+            return `0${value}`;
+        }
+
+        const toStringByFormatting = (source, delimiter = '-') => {
+            const year = source.getFullYear();
+            const month = leftPad(source.getMonth() + 1);
+            const day = leftPad(source.getDate());
+
+            return [year, month, day].join(delimiter);
+        }
+
+        const today = toStringByFormatting(new Date());
+
+        const setColor = (sensorName, value) => {
+            if(value == null) return '#A1A1A1';
+
+            if(sensorName == "pm10"){
+                if(value >= 0 && value <= 30) return color[1];
+                if(value > 30 && value <= 80) return color[2];
+                if(value > 80 && value <= 150) return color[3];
+                if(value > 150) return color[4];
+            }
+
+            if(sensorName === "pm25"){
+                console.log(value)
+                if(value >= 0 && value < 16) {
+                    return color[1];
+                    console.log('here?')
+                }
+                if(value >= 16 && value < 36) return color[2];
+                if(value >= 36 && value < 76) return color[3];
+                if(value > 76) return color[4];
+            }
+
+            if(sensorName =="temp"){
+                if(value >= 18 && value <= 28) return color[0];
+                else return color[0];
+            }
+
+            if(sensorName =="humi"){
+                if(value >= 40 && value <= 50) return color[0];
+                else return color[0];
+            }
+
+            if(sensorName =="co1"){
+                if(value >= 0 && value <= 2) return color[1];
+                if(value > 2 && value <= 9) return color[2];
+                if(value > 9 && value <= 15) return color[3];
+                if(value > 15) return color[4];
+            }
+
+            if(sensorName =="co2"){
+                if(value >= 0 && value <= 700)  return color[1];
+                if(value > 700 && value <= 1000) return color[2];
+                if(value > 1000 && value <= 2000) return color[3];
+                if(value > 1000) return color[4];
+            }
+
+            if(sensorName =="voc"){
+                if(value >= 0 && value <= 220)  return color[1];
+                if(value > 220 && value <= 660) return color[2];
+                if(value > 660 && value <= 2200) return color[3];
+                if(value > 2200) return color[4];
+            }
+
+            if(sensorName =="hcho"){
+                if(value >= 0 && value <= 100)  return color[1];
+                if(value > 100 && value <= 600) return color[2];
+                if(value > 600 && value <= 1200) return color[3];
+                if(value > 1200) return color[4];
+            }
+
+            return color[0];
+        }
+
+        const applyDataFollowingSensorObject = (data, sensorDictionary) => {
+            const wizeyeNames = Object.keys(sensorDictionary);
+                wizeyeNames.forEach((wizeyeName)=>{
+                    const sensorName = sensorDictionary[wizeyeName];
+                    const dataValue = refineData(sensorName, data[sensorName]);
+                    const text = dataValue == null? "-": (wizeyeName =='O_온도' || wizeyeName == 'O_습도')? Number(dataValue).toFixed():dataValue;
+                    // const text = dataValue == null? "-":dataValue;
+                    const color = setColor(sensorName,dataValue);
+
+                    
+                    console.log(wizeyeName, text, color, sensorName );
+                    window.frameElement._map.do.getUIE(wizeyeName).setStyle({text,color});
+                });
+        }
+
+        const setPublicAPI = () => {
+            //외부환경(공공API)값 세팅
+            const query = 'stationID='+Lv1IDof[ID]+'&startDateTime='+today+'&limit=10';
+            const url = `http://${HOST}:${PORT}/public/getPublicData?${query}`;
+            console.log(url);
+            fetch(url)
+            .then(response => response.json())
+            .then(parsedResponse => {
+                const outerSensorOf = {
+                    "O_PM10":"pm10",
+                    "O_PM2.5":"pm25",
+                    "O_온도":"temp",
+                    "O_습도":"humi",
+                    "O_CO":"co1"
+                }
+
+                console.log("setPublicAPI",parsedResponse.mysql[0]);
+                const data = parsedResponse.mysql[0];
+
+                applyDataFollowingSensorObject(data, outerSensorOf);
+            })
+            .catch((error) => console.log(error));
+        }
+
+        setPublicAPI();setInterval(()=>{setPublicAPI();},1000*60*30);
+        
+        
+        const setSensorData = () => {
+            const query = "deviceID="+ID+"&startDateTime="+today+"&period=m&limit=100";
+            const url = (`http://${HOST}:${PORT}/mqtt/getConnectedDeviceData?${query}`);
+
+            console.log(url);
+            fetch(url)
+            .then(response => response.json())
+            .then(parsedResponse => {
+                const innerSensorOf = {
+                    "PM10":"pm10",
+                    "PM2.5":"pm25",
+                    "온도":"temp",
+                    "습도":"humi",
+                    "CO":"co1",
+                    "CO2":"co2",
+                    "VOCs":"voc",
+                    "HCHO":"hcho",
+                }
+
+                console.log("setSensorData",parsedResponse.mysql[0]);
+                let data = parsedResponse.mysql[0];
+                
+                //만약 시간이 오늘 날짜 시간에 들어온 데이터가 없다면
+                if(new Date(data.dataTime).getTime() < new Date(today).getTime()) {
+                    Object.keys(innerSensorOf).forEach(e=>{
+                        window.frameElement._map.do.getUIE(e).setStyle({
+                            "text":"-",
+                            "color":"#D3D3D3"
+                        });
+                    })
+                    return;
+                } 
+
+                applyDataFollowingSensorObject(data, innerSensorOf);
+            })
+            .catch((error) => console.log(error));
+        }
+        
+        setSensorData();setInterval(()=>{setSensorData();},1000*60);
+        
+
+        
+    </script>
+</body>
+</html>

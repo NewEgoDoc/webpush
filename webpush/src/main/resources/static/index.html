@@ -1,0 +1,73 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+        <title>Document</title>
+
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockis.js"></script>
+        <script src="https://cdnis.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.js"></script>
+    </head>
+    <body>
+    <div>
+        <div>
+            <button id="sendMessage" onclick="sendMessage();">Send</button>
+            <input type="text" id="text" placeholder="Text" />
+        </div>
+        <br/>
+        <div>
+            <button id="sendPrivateMessage" onclick="sendPrivateMessage();">Send Private</button>
+            <input type="text" id="privateText" placeholder="Private Message"/>
+            <input type="text" id="to" placeholder="To"/>
+        </div>
+        <br/>
+        <br/>
+        <br/>
+            <div id="messages"></div>
+    </div>
+        <script type="text/javascript">
+            var stompClient = null;
+            var privateStompClient = null;
+
+            var socket = new SockJs('/ws');
+            stompClient = Stomp.over (socket);
+            stompClient.connect({}, function(frame){
+                console.log(frame);
+                stompClient.subscribe ('/all/messages', function (result) {
+                    show(JSON.parse (result.body));
+                });
+            });
+            socket = new SockJs('/ws');
+            privateStompClient = Stomp.over (socket);
+            privateStompClient.connect({}, function (frame) {
+                console.log(frame);
+                privateStompClient.subscribe('/user/specific', function (result) {
+                    console.log(result.body)
+                    show(JSON.parse(result.body));
+                });
+            });
+            function sendMessage () {
+                var text = document.getElementById('text').value;
+                stompClient.send("/app/application", {},
+                    JSON.stringify({'text': text}));
+            }
+            function sendPrivateMessage () {
+                var text = document.getElementById('privateText').value;
+                var to = document. getElementById('to').value;
+                stompClient. send ("/aps/private", {},
+                    JSON.stringify({'text':text, 'to': to}));
+            }
+            function show (message) {
+                var response = document.getElementById('messages');
+                var p = document.createElement('p');
+                p.innerTML= "message: " + message.text;
+                response.appendChild (p);
+            }
+
+        </script>
+    </body>
+</html>
